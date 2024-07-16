@@ -1,0 +1,34 @@
+---
+name: Conan SBOM Submission
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'conanfile.py'
+      - 'conanfile.txt'
+      - 'sbom.yaml'
+
+jobs:
+  build-sbom:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Conan
+        run: |
+          pip install conan 'cyclonedx-python-lib>=5.0.0,<6'
+          conan config install https://github.com/conan-io/conan-extensions.git
+          conan profile detect
+
+      - name: Generate SBOM
+        run: conan sbom:cyclonedx --format 1.4_json . > sbom.json
+
+      - name: Push SBOM to GitHub
+        uses: evryfs/sbom-dependency-submission-action@v0.0.14
+        with:
+          sbom-files: sbom.json
